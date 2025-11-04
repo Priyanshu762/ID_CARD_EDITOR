@@ -1,0 +1,168 @@
+// Sample data for batch export demo
+export const sampleEmployees = [
+  {
+    name: 'John Doe',
+    employeeId: 'EMP-001',
+    department: 'Engineering',
+    position: 'Senior Developer',
+    email: 'john.doe@company.com',
+    phone: '+1 234 567 8900',
+  },
+  {
+    name: 'Jane Smith',
+    employeeId: 'EMP-002',
+    department: 'Marketing',
+    position: 'Marketing Manager',
+    email: 'jane.smith@company.com',
+    phone: '+1 234 567 8901',
+  },
+  {
+    name: 'Mike Johnson',
+    employeeId: 'EMP-003',
+    department: 'Sales',
+    position: 'Sales Representative',
+    email: 'mike.johnson@company.com',
+    phone: '+1 234 567 8902',
+  },
+];
+
+// Default template configurations
+export const defaultTemplates = [
+  {
+    id: 'template-corporate',
+    name: 'Corporate Blue',
+    orientation: 'landscape',
+    backgroundColor: '#0066CC',
+    elements: [
+      {
+        type: 'text',
+        label: 'Name',
+        value: 'Employee Name',
+        x: 150,
+        y: 80,
+        fontSize: 24,
+        fontFamily: 'Arial',
+        fontWeight: 'bold',
+        color: '#ffffff',
+        align: 'left',
+        zIndex: 1,
+      },
+      {
+        type: 'text',
+        label: 'ID',
+        value: 'EMP-00000',
+        x: 150,
+        y: 110,
+        fontSize: 16,
+        fontFamily: 'Arial',
+        fontWeight: 'normal',
+        color: '#ffffff',
+        align: 'left',
+        zIndex: 1,
+      },
+      {
+        type: 'image',
+        src: null,
+        x: 20,
+        y: 40,
+        width: 100,
+        height: 120,
+        borderRadius: 8,
+        zIndex: 2,
+      },
+      {
+        type: 'qr',
+        data: 'https://company.com/employee/verify',
+        x: 300,
+        y: 150,
+        size: 80,
+        zIndex: 3,
+      },
+    ],
+  },
+  {
+    id: 'template-modern',
+    name: 'Modern Minimal',
+    orientation: 'portrait',
+    backgroundColor: '#ffffff',
+    elements: [
+      {
+        type: 'text',
+        label: 'Name',
+        value: 'Employee Name',
+        x: 50,
+        y: 180,
+        fontSize: 20,
+        fontFamily: 'Arial',
+        fontWeight: 'bold',
+        color: '#000000',
+        align: 'center',
+        zIndex: 1,
+      },
+      {
+        type: 'image',
+        src: null,
+        x: 37.5,
+        y: 40,
+        width: 120,
+        height: 120,
+        borderRadius: 60,
+        zIndex: 2,
+      },
+    ],
+  },
+];
+
+export const fontOptions = {
+  families: [
+    'Arial',
+    'Times New Roman',
+    'Courier New',
+    'Georgia',
+    'Verdana',
+    'Comic Sans MS',
+    'Impact',
+    'Trebuchet MS',
+    'Palatino',
+    'Garamond',
+  ],
+  weights: [
+    { value: '100', label: 'Thin' },
+    { value: '200', label: 'Extra Light' },
+    { value: '300', label: 'Light' },
+    { value: '400', label: 'Normal' },
+    { value: '500', label: 'Medium' },
+    { value: '600', label: 'Semi Bold' },
+    { value: '700', label: 'Bold' },
+    { value: '800', label: 'Extra Bold' },
+    { value: '900', label: 'Black' },
+  ],
+  sizes: [8, 10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 48, 56, 64, 72],
+};
+
+export const colorSchemes = [
+  {
+    name: 'Corporate',
+    primary: '#0066CC',
+    secondary: '#FFFFFF',
+    text: '#333333',
+  },
+  {
+    name: 'Modern',
+    primary: '#7C3AED',
+    secondary: '#14B8A6',
+    text: '#000000',
+  },
+  {
+    name: 'Professional',
+    primary: '#1E3A8A',
+    secondary: '#F59E0B',
+    text: '#FFFFFF',
+  },
+  {
+    name: 'Elegant',
+    primary: '#831843',
+    secondary: '#FCD34D',
+    text: '#FFFFFF',
+  },
+];
