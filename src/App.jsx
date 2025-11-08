@@ -21,15 +21,17 @@ const App = () => {
         
         {/* Global Toast Notifications */}
         <Toaster
-          position="top-right"
+          position="bottom-right"
           toastOptions={{
             duration: 3000,
             style: {
               background: '#fff',
               color: '#363636',
-              padding: '16px',
-              borderRadius: '8px',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+              padding: '10px 14px',
+              borderRadius: '6px',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
+              fontSize: '13px',
+              maxWidth: '300px',
             },
             success: {
               iconTheme: {
