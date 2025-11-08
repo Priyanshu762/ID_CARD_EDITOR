@@ -12,41 +12,18 @@ const useCardStore = create((set, get) => ({
     snapToGrid: false,
     gridSize: 10,
     backgroundColor: '#ffffff',
+    backgroundOpacity: 1, // 0 to 1
     backgroundImage: null,
-    zoom: 100, // Zoom percentage (50-200%)
+    zoom: 125, // Zoom percentage (50-200%)
+    // Canvas border properties
+    borderStyle: 'none',
+    borderWidth: 1,
+    borderColor: '#000000',
+    borderSides: '',
   },
 
   // Elements on the card (text fields, images, QR codes)
-  elements: [
-    {
-      id: 'name-1',
-      type: 'text',
-      label: 'Name',
-      value: 'John Doe',
-      x: 150,
-      y: 80,
-      fontSize: 24,
-      fontFamily: 'Arial',
-      fontWeight: 'bold',
-      color: '#000000',
-      align: 'left',
-      zIndex: 1,
-    },
-    {
-      id: 'id-1',
-      type: 'text',
-      label: 'Employee ID',
-      value: 'EMP-12345',
-      x: 150,
-      y: 120,
-      fontSize: 16,
-      fontFamily: 'Arial',
-      fontWeight: 'normal',
-      color: '#333333',
-      align: 'left',
-      zIndex: 1,
-    },
-  ],
+  elements: [],
 
   // Selected element ID
   selectedElementId: null,

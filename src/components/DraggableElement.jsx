@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 
 const DraggableElement = ({ children, position, onDrag, bounds = 'parent', disabled = false, onSelect }) => {
   const elementRef = useRef(null);
@@ -10,28 +10,28 @@ const DraggableElement = ({ children, position, onDrag, bounds = 'parent', disab
     setCurrentPos(position);
   }, [position]);
 
-  const handleMouseDown = (e) => {
+  const handleMouseDown = useCallback((e) => {
     if (disabled) return;
     
     e.stopPropagation(); // Prevent canvas deselect
-    if (onSelect) onSelect();
+    onSelect?.();
     
     setIsDragging(true);
     setDragStart({
       x: e.clientX - currentPos.x,
       y: e.clientY - currentPos.y,
     });
-  };
+  }, [disabled, onSelect, currentPos]);
 
-  const handleClick = (e) => {
+  const handleClick = useCallback((e) => {
     e.stopPropagation(); // Prevent canvas deselect when clicking element
-    if (onSelect) onSelect();
-  };
+    onSelect?.();
+  }, [onSelect]);
 
   useEffect(() => {
-    const handleMouseMove = (e) => {
-      if (!isDragging) return;
+    if (!isDragging) return;
 
+    const handleMouseMove = (e) => {
       let newX = e.clientX - dragStart.x;
       let newY = e.clientY - dragStart.y;
 
@@ -51,18 +51,12 @@ const DraggableElement = ({ children, position, onDrag, bounds = 'parent', disab
     };
 
     const handleMouseUp = () => {
-      if (isDragging) {
-        setIsDragging(false);
-        if (onDrag) {
-          onDrag(null, { x: currentPos.x, y: currentPos.y });
-        }
-      }
+      setIsDragging(false);
+      onDrag?.(null, { x: currentPos.x, y: currentPos.y });
     };
 
-    if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-    }
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
@@ -70,19 +64,24 @@ const DraggableElement = ({ children, position, onDrag, bounds = 'parent', disab
     };
   }, [isDragging, dragStart, currentPos, onDrag, bounds]);
 
+  const elementStyle = useMemo(() => ({
+    position: 'absolute',
+    left: `${currentPos.x}px`,
+    top: `${currentPos.y}px`,
+    cursor: isDragging ? 'grabbing' : 'grab',
+    userSelect: 'none',
+    transition: isDragging ? 'none' : 'all 0.1s ease-out',
+  }), [currentPos, isDragging]);
+
   return (
     <div
       ref={elementRef}
       onMouseDown={handleMouseDown}
       onClick={handleClick}
-      style={{
-        position: 'absolute',
-        left: `${currentPos.x}px`,
-        top: `${currentPos.y}px`,
-        cursor: isDragging ? 'grabbing' : 'grab',
-        userSelect: 'none',
-        transition: isDragging ? 'none' : 'all 0.1s ease-out',
-      }}
+      style={elementStyle}
+      role="button"
+      tabIndex={0}
+      aria-label="Draggable element"
     >
       {children}
     </div>

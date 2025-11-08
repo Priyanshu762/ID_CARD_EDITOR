@@ -1,17 +1,58 @@
-import React from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
+import toast from 'react-hot-toast';
 import useCardStore from '../store/useCardStore';
 import { fontOptions } from '../utils/constants';
 
 const PropertyPanel = () => {
   const { selectedElementId, getSelectedElement, updateElement, canvas, setCanvasProperty } = useCardStore();
   const selectedElement = getSelectedElement();
+  const imageInputRef = useRef(null);
 
-  const fontFamilies = fontOptions.families;
-  const fontWeights = fontOptions.weights.map(w => w.value);
-  const alignments = ['left', 'center', 'right'];
+  const fontFamilies = useMemo(() => fontOptions.families, []);
+  const fontWeights = useMemo(() => fontOptions.weights.map(w => w.value), []);
+  const alignments = useMemo(() => ['left', 'center', 'right'], []);
 
   // Convert px to mm (96 DPI: 1 inch = 96px = 25.4mm)
-  const pxToMm = (px) => ((px * 25.4) / 96).toFixed(2);
+  const pxToMm = useCallback((px) => ((px * 25.4) / 96).toFixed(2), []);
+
+  const handleInputChange = useCallback((field, value) => {
+    updateElement(selectedElementId, { [field]: value });
+  }, [selectedElementId, updateElement]);
+
+  const handleNumberInputChange = useCallback((field, value, min = null) => {
+    const numValue = parseInt(value) || (min ?? 0);
+    updateElement(selectedElementId, { [field]: numValue });
+  }, [selectedElementId, updateElement]);
+
+  const handleCanvasPropertyChange = useCallback((property, value) => {
+    setCanvasProperty(property, value);
+  }, [setCanvasProperty]);
+
+  const handleImageUpload = useCallback((event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+      updateElement(selectedElementId, { src: e.target.result });
+      toast.success('Image uploaded successfully!');
+    };
+
+    reader.onerror = () => {
+      console.error('Failed to read image file');
+      toast.error('Failed to load image');
+    };
+
+    reader.readAsDataURL(file);
+    
+    // Reset input value
+    event.target.value = '';
+  }, [selectedElementId, updateElement]);
+
+  const handleAlignmentClick = useCallback((align) => {
+    updateElement(selectedElementId, { align });
+  }, [selectedElementId, updateElement]);
 
   if (!selectedElement) {
     return (
@@ -38,17 +79,14 @@ const PropertyPanel = () => {
 
             {/* Zoom Control */}
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-medium text-gray-700">Zoom: {canvas.zoom}%</label>
-                <span className="text-xs text-gray-500">Ctrl + Scroll</span>
-              </div>
+              <label className="block text-xs font-medium mb-1.5 text-gray-700">Zoom: {canvas.zoom}%</label>
               <input
                 type="range"
                 min="50"
                 max="200"
                 step="5"
                 value={canvas.zoom}
-                onChange={(e) => setCanvasProperty('zoom', parseInt(e.target.value))}
+                onChange={(e) => handleCanvasPropertyChange('zoom', parseInt(e.target.value))}
                 className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
               />
               <div className="flex justify-between text-xs text-gray-500 mt-1">
@@ -62,7 +100,7 @@ const PropertyPanel = () => {
               <input
                 type="number"
                 value={canvas.width}
-                onChange={(e) => setCanvasProperty('width', parseInt(e.target.value) || 323)}
+                onChange={(e) => handleCanvasPropertyChange('width', parseInt(e.target.value) || 323)}
                 min="100"
                 max="1000"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
@@ -75,7 +113,7 @@ const PropertyPanel = () => {
               <input
                 type="number"
                 value={canvas.height}
-                onChange={(e) => setCanvasProperty('height', parseInt(e.target.value) || 204)}
+                onChange={(e) => handleCanvasPropertyChange('height', parseInt(e.target.value) || 204)}
                 min="100"
                 max="1000"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
@@ -88,16 +126,35 @@ const PropertyPanel = () => {
               <input
                 type="color"
                 value={canvas.backgroundColor}
-                onChange={(e) => setCanvasProperty('backgroundColor', e.target.value)}
+                onChange={(e) => handleCanvasPropertyChange('backgroundColor', e.target.value)}
                 className="w-full h-10 rounded-lg border-2 border-gray-300 cursor-pointer hover:border-blue-400 transition-colors"
               />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium mb-1.5 text-gray-700">
+                Background Opacity: {Math.round((canvas.backgroundOpacity || 1) * 100)}%
+              </label>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+                value={Math.round((canvas.backgroundOpacity || 1) * 100)}
+                onChange={(e) => handleCanvasPropertyChange('backgroundOpacity', parseInt(e.target.value) / 100)}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+              />
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>0%</span>
+                <span>100%</span>
+              </div>
             </div>
 
             <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
               <input
                 type="checkbox"
                 checked={canvas.showGrid}
-                onChange={(e) => setCanvasProperty('showGrid', e.target.checked)}
+                onChange={(e) => handleCanvasPropertyChange('showGrid', e.target.checked)}
                 id="showGrid"
                 className="cursor-pointer w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
               />
@@ -108,7 +165,7 @@ const PropertyPanel = () => {
               <input
                 type="checkbox"
                 checked={canvas.snapToGrid}
-                onChange={(e) => setCanvasProperty('snapToGrid', e.target.checked)}
+                onChange={(e) => handleCanvasPropertyChange('snapToGrid', e.target.checked)}
                 id="snapToGrid"
                 className="cursor-pointer w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
               />
@@ -121,12 +178,92 @@ const PropertyPanel = () => {
                 <input
                   type="number"
                   value={canvas.gridSize}
-                  onChange={(e) => setCanvasProperty('gridSize', parseInt(e.target.value))}
+                  onChange={(e) => handleCanvasPropertyChange('gridSize', parseInt(e.target.value))}
                   min="5"
                   max="50"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
                 />
               </div>
+            )}
+          </div>
+        </div>
+
+        {/* Canvas Border Settings */}
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <h3 className="font-semibold mb-3 text-gray-800 text-sm">Card Border Settings</h3>
+          
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium mb-1.5 text-gray-700">Border Style</label>
+              <select
+                value={canvas.borderStyle || 'none'}
+                onChange={(e) => handleCanvasPropertyChange('borderStyle', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+              >
+                <option value="none">None</option>
+                <option value="one">One Side</option>
+                <option value="two">Two Sides</option>
+                <option value="all">All Sides / Full</option>
+              </select>
+            </div>
+
+            {/* Conditional: One Side */}
+            {canvas.borderStyle === 'one' && (
+              <div>
+                <label className="block text-xs font-medium mb-1.5 text-gray-700">Select Side</label>
+                <select
+                  value={canvas.borderSides || 'left'}
+                  onChange={(e) => handleCanvasPropertyChange('borderSides', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+                >
+                  <option value="left">Left</option>
+                  <option value="right">Right</option>
+                  <option value="top">Top</option>
+                  <option value="bottom">Bottom</option>
+                </select>
+              </div>
+            )}
+
+            {/* Conditional: Two Sides */}
+            {canvas.borderStyle === 'two' && (
+              <div>
+                <label className="block text-xs font-medium mb-1.5 text-gray-700">Select Sides</label>
+                <select
+                  value={canvas.borderSides || 'vertical'}
+                  onChange={(e) => handleCanvasPropertyChange('borderSides', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+                >
+                  <option value="vertical">Vertical (Left & Right)</option>
+                  <option value="horizontal">Horizontal (Top & Bottom)</option>
+                </select>
+              </div>
+            )}
+
+            {/* Show border width and color only if border style is not 'none' */}
+            {canvas.borderStyle && canvas.borderStyle !== 'none' && (
+              <>
+                <div>
+                  <label className="block text-xs font-medium mb-1.5 text-gray-700">Border Width (px)</label>
+                  <input
+                    type="number"
+                    value={canvas.borderWidth || 1}
+                    onChange={(e) => handleCanvasPropertyChange('borderWidth', parseInt(e.target.value) || 1)}
+                    min="1"
+                    max="20"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium mb-1.5 text-gray-700">Border Color</label>
+                  <input
+                    type="color"
+                    value={canvas.borderColor || '#000000'}
+                    onChange={(e) => handleCanvasPropertyChange('borderColor', e.target.value)}
+                    className="w-full h-10 rounded-lg border-2 border-gray-300 cursor-pointer hover:border-blue-400 transition-colors"
+                  />
+                </div>
+              </>
             )}
           </div>
         </div>
@@ -145,7 +282,7 @@ const PropertyPanel = () => {
           <input
             type="number"
             value={Math.round(selectedElement.x)}
-            onChange={(e) => updateElement(selectedElementId, { x: parseInt(e.target.value) || 0 })}
+            onChange={(e) => handleNumberInputChange('x', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
           />
         </div>
@@ -155,7 +292,7 @@ const PropertyPanel = () => {
           <input
             type="number"
             value={Math.round(selectedElement.y)}
-            onChange={(e) => updateElement(selectedElementId, { y: parseInt(e.target.value) || 0 })}
+            onChange={(e) => handleNumberInputChange('y', e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
           />
         </div>
@@ -168,7 +305,7 @@ const PropertyPanel = () => {
               <input
                 type="text"
                 value={selectedElement.label}
-                onChange={(e) => updateElement(selectedElementId, { label: e.target.value })}
+                onChange={(e) => handleInputChange('label', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
               />
             </div>
@@ -178,7 +315,7 @@ const PropertyPanel = () => {
               <input
                 type="text"
                 value={selectedElement.value}
-                onChange={(e) => updateElement(selectedElementId, { value: e.target.value })}
+                onChange={(e) => handleInputChange('value', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
               />
             </div>
@@ -187,7 +324,7 @@ const PropertyPanel = () => {
               <label className="block text-xs font-medium mb-1.5 text-gray-700">Font Family</label>
               <select
                 value={selectedElement.fontFamily}
-                onChange={(e) => updateElement(selectedElementId, { fontFamily: e.target.value })}
+                onChange={(e) => handleInputChange('fontFamily', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
               >
                 {fontFamilies.map((font) => (
@@ -201,7 +338,7 @@ const PropertyPanel = () => {
               <input
                 type="number"
                 value={selectedElement.fontSize}
-                onChange={(e) => updateElement(selectedElementId, { fontSize: parseInt(e.target.value) })}
+                onChange={(e) => handleNumberInputChange('fontSize', e.target.value, 8)}
                 min="8"
                 max="100"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
@@ -212,7 +349,7 @@ const PropertyPanel = () => {
               <label className="block text-xs font-medium mb-1.5 text-gray-700">Font Weight</label>
               <select
                 value={selectedElement.fontWeight}
-                onChange={(e) => updateElement(selectedElementId, { fontWeight: e.target.value })}
+                onChange={(e) => handleInputChange('fontWeight', e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
               >
                 {fontWeights.map((weight) => (
@@ -226,7 +363,7 @@ const PropertyPanel = () => {
               <input
                 type="color"
                 value={selectedElement.color}
-                onChange={(e) => updateElement(selectedElementId, { color: e.target.value })}
+                onChange={(e) => handleInputChange('color', e.target.value)}
                 className="w-full h-10 rounded border border-gray-300 cursor-pointer"
               />
             </div>
@@ -237,12 +374,13 @@ const PropertyPanel = () => {
                 {alignments.map((align) => (
                   <button
                     key={align}
-                    onClick={() => updateElement(selectedElementId, { align })}
-                    className={`flex-1 px-3 py-2 rounded border ${
+                    onClick={() => handleAlignmentClick(align)}
+                    className={`flex-1 px-3 py-2 rounded border transition-colors ${
                       selectedElement.align === align
                         ? 'bg-blue-500 text-white border-blue-500'
                         : 'bg-white border-gray-300 hover:bg-gray-50'
                     }`}
+                    aria-label={`Align ${align}`}
                   >
                     {align}
                   </button>
@@ -260,27 +398,27 @@ const PropertyPanel = () => {
               <input
                 type="text"
                 value={selectedElement.src || ''}
-                onChange={(e) => updateElement(selectedElementId, { src: e.target.value })}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  handleInputChange('src', value);
+                  // Validate URL format
+                  if (value && !value.startsWith('data:') && !value.startsWith('http')) {
+                    toast.error('Image URL should start with http:// or https://');
+                  }
+                }}
                 placeholder="Enter image URL or upload"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
               />
+              <p className="text-xs text-gray-500 mt-1">Or upload an image below</p>
             </div>
 
             <div>
               <label className="block text-xs font-medium mb-1.5 text-gray-700">Upload Image</label>
               <input
+                ref={imageInputRef}
                 type="file"
                 accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files[0];
-                  if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                      updateElement(selectedElementId, { src: event.target.result });
-                    };
-                    reader.readAsDataURL(file);
-                  }
-                }}
+                onChange={handleImageUpload}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
               />
             </div>
@@ -290,7 +428,7 @@ const PropertyPanel = () => {
               <input
                 type="number"
                 value={selectedElement.width}
-                onChange={(e) => updateElement(selectedElementId, { width: parseInt(e.target.value) })}
+                onChange={(e) => handleNumberInputChange('width', e.target.value, 10)}
                 min="10"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
               />
@@ -301,7 +439,7 @@ const PropertyPanel = () => {
               <input
                 type="number"
                 value={selectedElement.height}
-                onChange={(e) => updateElement(selectedElementId, { height: parseInt(e.target.value) })}
+                onChange={(e) => handleNumberInputChange('height', e.target.value, 10)}
                 min="10"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
               />
@@ -312,7 +450,7 @@ const PropertyPanel = () => {
               <input
                 type="number"
                 value={selectedElement.borderRadius}
-                onChange={(e) => updateElement(selectedElementId, { borderRadius: parseInt(e.target.value) })}
+                onChange={(e) => handleNumberInputChange('borderRadius', e.target.value)}
                 min="0"
                 max="100"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
@@ -328,23 +466,31 @@ const PropertyPanel = () => {
               <label className="block text-xs font-medium mb-1.5 text-gray-700">QR Data</label>
               <textarea
                 value={selectedElement.data}
-                onChange={(e) => updateElement(selectedElementId, { data: e.target.value })}
-                placeholder="Enter URL or text"
+                onChange={(e) => {
+                  const value = e.target.value;
+                  handleInputChange('data', value);
+                  if (!value.trim()) {
+                    toast.error('QR code data cannot be empty');
+                  }
+                }}
+                placeholder="Enter URL or text for QR code"
                 rows="3"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
               />
+              <p className="text-xs text-gray-500 mt-1">Can be a URL, text, or any data</p>
             </div>
 
             <div>
-              <label className="block text-xs font-medium mb-1.5 text-gray-700">Size</label>
+              <label className="block text-xs font-medium mb-1.5 text-gray-700">Size (px)</label>
               <input
                 type="number"
                 value={selectedElement.size}
-                onChange={(e) => updateElement(selectedElementId, { size: parseInt(e.target.value) })}
+                onChange={(e) => handleNumberInputChange('size', e.target.value, 50)}
                 min="50"
                 max="300"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
               />
+              <p className="text-xs text-gray-500 mt-1">Range: 50-300px</p>
             </div>
           </>
         )}
@@ -354,10 +500,90 @@ const PropertyPanel = () => {
           <input
             type="number"
             value={selectedElement.zIndex}
-            onChange={(e) => updateElement(selectedElementId, { zIndex: parseInt(e.target.value) })}
+            onChange={(e) => handleNumberInputChange('zIndex', e.target.value)}
             min="0"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
           />
+        </div>
+
+        {/* Border Settings - Available for all element types */}
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <h4 className="font-semibold mb-3 text-gray-800 text-sm">Border Settings</h4>
+          
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-medium mb-1.5 text-gray-700">Border Style</label>
+              <select
+                value={selectedElement.borderStyle || 'none'}
+                onChange={(e) => handleInputChange('borderStyle', e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+              >
+                <option value="none">None</option>
+                <option value="one">One Side</option>
+                <option value="two">Two Sides</option>
+                <option value="all">All Sides / Full</option>
+              </select>
+            </div>
+
+            {/* Conditional: One Side */}
+            {selectedElement.borderStyle === 'one' && (
+              <div>
+                <label className="block text-xs font-medium mb-1.5 text-gray-700">Select Side</label>
+                <select
+                  value={selectedElement.borderSides || 'left'}
+                  onChange={(e) => handleInputChange('borderSides', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+                >
+                  <option value="left">Left</option>
+                  <option value="right">Right</option>
+                  <option value="top">Top</option>
+                  <option value="bottom">Bottom</option>
+                </select>
+              </div>
+            )}
+
+            {/* Conditional: Two Sides */}
+            {selectedElement.borderStyle === 'two' && (
+              <div>
+                <label className="block text-xs font-medium mb-1.5 text-gray-700">Select Sides</label>
+                <select
+                  value={selectedElement.borderSides || 'vertical'}
+                  onChange={(e) => handleInputChange('borderSides', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+                >
+                  <option value="vertical">Vertical (Left & Right)</option>
+                  <option value="horizontal">Horizontal (Top & Bottom)</option>
+                </select>
+              </div>
+            )}
+
+            {/* Show border width and color only if border style is not 'none' */}
+            {selectedElement.borderStyle && selectedElement.borderStyle !== 'none' && (
+              <>
+                <div>
+                  <label className="block text-xs font-medium mb-1.5 text-gray-700">Border Width (px)</label>
+                  <input
+                    type="number"
+                    value={selectedElement.borderWidth || 1}
+                    onChange={(e) => handleNumberInputChange('borderWidth', e.target.value, 1)}
+                    min="1"
+                    max="20"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium mb-1.5 text-gray-700">Border Color</label>
+                  <input
+                    type="color"
+                    value={selectedElement.borderColor || '#000000'}
+                    onChange={(e) => handleInputChange('borderColor', e.target.value)}
+                    className="w-full h-10 rounded border border-gray-300 cursor-pointer"
+                  />
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>
