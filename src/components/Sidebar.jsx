@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Plus, Type, Image, QrCode, Layout, Trash2, Copy } from 'lucide-react';
 import useCardStore from '../store/useCardStore';
 
@@ -7,7 +7,16 @@ const Sidebar = () => {
   const [customLabel, setCustomLabel] = useState('');
   const [customValue, setCustomValue] = useState('');
 
-  const addTextField = () => {
+  const predefinedFields = useMemo(() => [
+    { label: 'Name', value: 'John Doe' },
+    { label: 'Employee ID', value: 'EMP-12345' },
+    { label: 'Department', value: 'Engineering' },
+    { label: 'Position', value: 'Software Engineer' },
+    { label: 'Email', value: 'john.doe@company.com' },
+    { label: 'Phone', value: '+1 234 567 8900' },
+  ], []);
+
+  const addTextField = useCallback(() => {
     addElement({
       type: 'text',
       label: customLabel || 'New Field',
@@ -23,9 +32,9 @@ const Sidebar = () => {
     });
     setCustomLabel('');
     setCustomValue('');
-  };
+  }, [addElement, customLabel, customValue]);
 
-  const addImage = () => {
+  const addImage = useCallback(() => {
     addElement({
       type: 'image',
       src: null,
@@ -36,9 +45,9 @@ const Sidebar = () => {
       borderRadius: 0,
       zIndex: 2,
     });
-  };
+  }, [addElement]);
 
-  const addQRCode = () => {
+  const addQRCode = useCallback(() => {
     addElement({
       type: 'qr',
       data: 'https://example.com',
@@ -47,24 +56,16 @@ const Sidebar = () => {
       size: 80,
       zIndex: 3,
     });
-  };
+  }, [addElement]);
 
-  const predefinedFields = [
-    { label: 'Name', value: 'John Doe' },
-    { label: 'Employee ID', value: 'EMP-12345' },
-    { label: 'Department', value: 'Engineering' },
-    { label: 'Position', value: 'Software Engineer' },
-    { label: 'Email', value: 'john.doe@company.com' },
-    { label: 'Phone', value: '+1 234 567 8900' },
-  ];
-
-  const addPredefinedField = (field) => {
+  const addPredefinedField = useCallback((field) => {
+    const textElementsCount = elements.filter(el => el.type === 'text').length;
     addElement({
       type: 'text',
       label: field.label,
       value: field.value,
       x: 50,
-      y: 50 + elements.filter(el => el.type === 'text').length * 30,
+      y: 50 + textElementsCount * 30,
       fontSize: 16,
       fontFamily: 'Arial',
       fontWeight: 'normal',
@@ -72,7 +73,39 @@ const Sidebar = () => {
       align: 'left',
       zIndex: 1,
     });
-  };
+  }, [addElement, elements]);
+
+  const handleElementClick = useCallback((elementId) => {
+    selectElement(elementId);
+  }, [selectElement]);
+
+  const handleDuplicateClick = useCallback((e, elementId) => {
+    e.stopPropagation();
+    duplicateElement(elementId);
+  }, [duplicateElement]);
+
+  const handleDeleteClick = useCallback((e, elementId) => {
+    e.stopPropagation();
+    deleteElement(elementId);
+  }, [deleteElement]);
+
+  const getElementIcon = useCallback((type) => {
+    const iconProps = { size: 14 };
+    switch (type) {
+      case 'text':
+        return <Type {...iconProps} className="text-blue-600" />;
+      case 'image':
+        return <Image {...iconProps} className="text-green-600" />;
+      case 'qr':
+        return <QrCode {...iconProps} className="text-purple-600" />;
+      default:
+        return null;
+    }
+  }, []);
+
+  const getElementLabel = useCallback((element) => {
+    return element.type === 'text' ? element.label : element.type.toUpperCase();
+  }, []);
 
   return (
     <div className="w-72 bg-white border-r border-gray-200 overflow-y-auto shadow-sm">
@@ -117,6 +150,7 @@ const Sidebar = () => {
                 key={index}
                 onClick={() => addPredefinedField(field)}
                 className="px-2 py-1.5 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-blue-400 active:bg-blue-50 text-xs font-medium transition-all shadow-sm"
+                aria-label={`Add ${field.label} field`}
               >
                 {field.label}
               </button>
@@ -129,6 +163,7 @@ const Sidebar = () => {
           <button
             onClick={addImage}
             className="w-full bg-green-600 text-white px-3 py-2 rounded-lg hover:bg-green-700 active:bg-green-800 flex items-center justify-center gap-2 font-medium shadow-sm transition-all text-sm"
+            aria-label="Add Image"
           >
             <Image size={16} />
             Add Image
@@ -136,6 +171,7 @@ const Sidebar = () => {
           <button
             onClick={addQRCode}
             className="w-full bg-purple-600 text-white px-3 py-2 rounded-lg hover:bg-purple-700 active:bg-purple-800 flex items-center justify-center gap-2 font-medium shadow-sm transition-all text-sm"
+            aria-label="Add QR Code"
           >
             <QrCode size={16} />
             Add QR Code
@@ -152,39 +188,36 @@ const Sidebar = () => {
             {elements.map((element) => (
               <div
                 key={element.id}
-                onClick={() => selectElement(element.id)}
+                onClick={() => handleElementClick(element.id)}
                 className={`p-2 rounded-lg cursor-pointer flex items-center justify-between transition-all ${
                   selectedElementId === element.id
                     ? 'bg-blue-100 border-2 border-blue-400 shadow-sm'
                     : 'bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 shadow-sm'
                 }`}
+                role="button"
+                tabIndex={0}
+                aria-label={`Select ${getElementLabel(element)}`}
               >
                 <div className="flex items-center gap-2 flex-1">
-                  {element.type === 'text' && <Type size={14} className="text-blue-600" />}
-                  {element.type === 'image' && <Image size={14} className="text-green-600" />}
-                  {element.type === 'qr' && <QrCode size={14} className="text-purple-600" />}
+                  {getElementIcon(element.type)}
                   <span className="text-xs font-medium truncate">
-                    {element.type === 'text' ? element.label : element.type.toUpperCase()}
+                    {getElementLabel(element)}
                   </span>
                 </div>
                 <div className="flex gap-1">
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      duplicateElement(element.id);
-                    }}
+                    onClick={(e) => handleDuplicateClick(e, element.id)}
                     className="p-1 hover:bg-gray-200 rounded-md transition-colors"
                     title="Duplicate"
+                    aria-label={`Duplicate ${getElementLabel(element)}`}
                   >
                     <Copy size={12} className="text-gray-600" />
                   </button>
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      deleteElement(element.id);
-                    }}
+                    onClick={(e) => handleDeleteClick(e, element.id)}
                     className="p-1 hover:bg-red-100 text-red-600 rounded-md transition-colors"
                     title="Delete"
+                    aria-label={`Delete ${getElementLabel(element)}`}
                   >
                     <Trash2 size={12} />
                   </button>
